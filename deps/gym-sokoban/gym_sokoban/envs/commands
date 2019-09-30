@@ -1,0 +1,7 @@
+# Linux
+g++ -std=c++11 -c -fPIC -O3 room_utils_fast.cpp -o room_utils_fast.o
+g++ -shared -Wl,-soname,room_utils_fast.so -o room_utils_fast.so room_utils_fast.o
+
+# Mac Os
+g++ -std=c++11 -c -fPIC -O3 room_utils_fast.cpp -o room_utils_fast.os
+g++ -dynamiclib room_utils_fast.os -o room_utils_fast.dylib

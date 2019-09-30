@@ -1,0 +1,1 @@
+from gym_sokoban_fast.sokoban_env_fast import SokobanEnvFast
