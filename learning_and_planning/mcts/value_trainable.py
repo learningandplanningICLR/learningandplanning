@@ -10,6 +10,8 @@ from learning_and_planning.envs.sokoban_env_creator import get_callable
 from learning_and_planning.mcts.auto_ml import AutoMLCreator
 from learning_and_planning.mcts.ensemble_configurator import EnsembleConfigurator
 from learning_and_planning.mcts.mpi_common import SERVER_RANK
+from learning_and_planning.mcts.multi_tower_initializer import \
+    create_multihead_initializers
 from learning_and_planning.mcts.replay_buffer import circular_replay_buffer_mcts
 from learning_and_planning.mcts.value import Value
 from learning_and_planning.mcts.value_accumulators import ScalarValueAccumulator, PolicyValueAccumulator
@@ -535,14 +537,14 @@ class ValueEnsemble2(ValueBase):
                  traits=None,
                  prior_scale=1.,
                  accumulator_fn=None,
-                 multihead_initializers_neptune_links=None,
+                 checkpoint_paths=None,
                  **kwargs):
 
         self._num_ensemble = num_ensemble
         if self._num_ensemble is None:
             self._num_ensemble = EnsembleConfigurator().num_ensembles
         self._prior_scale = prior_scale
-        self.multihead_initializers_neptune_links = multihead_initializers_neptune_links
+        self.checkpoint_paths = checkpoint_paths
         self.multihead_initializers = []
         if traits is None:
             traits = EnsembleValueTraits(self._num_ensemble)
@@ -567,8 +569,8 @@ class ValueEnsemble2(ValueBase):
             eval_value = eval_value+self._prior_scale*eval_prior
         eval_value = tf.expand_dims(eval_value, axis=-1)  # Quirk to be compatible with rest of the code
 
-        if self.multihead_initializers_neptune_links is not None:
-            self.multihead_initializers = create_multihead_initializers(self.multihead_initializers_neptune_links)
+        if self.checkpoint_paths is not None:
+            self.multihead_initializers = create_multihead_initializers(self.checkpoint_paths)
 
         return train_value, eval_value
 
