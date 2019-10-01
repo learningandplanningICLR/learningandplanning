@@ -1,11 +1,17 @@
 
+## Uncertainty - sensitive learning and planning with ensembles
+
+This is anonymized codebase for experiemnents presented in paper "Uncertainty - sensitive learning and planning with ensembles" https://openreview.net/forum?id=SkglVlSFPS
+
 ## How to run it
-Install openmpi >= 3.0.0, create virtualenv with python 3.6.
 
-Install modules  from requirements_cpu.txt.
+Build singularity container
 
-`pip install -r requirements_cpu.txt`
+`singularity build container.simg singularity_recipe`
 
+Run container shell
+
+`singularity shell container.simg`
 
 Set PYTHONPATH
 
@@ -20,12 +26,14 @@ Run experiment with
 ## Experiment files
 
 All experiments specifications (which should be passed to `run_train_.sh`) are 
-inside learning_and_planning/experiments/ directory.
+inside `learning_and_planning/experiments/` directory.
 
 See following subdirectories for experiments presented in the paper.
 
 * `chain_env` Deep-see experiments.
 * `toy_mr` Toy Montezuma Revenge experiments.
 * `sokoban_multiboard` Sokoban experiments on multiple boards with voting.
+* `transfer` Transfer across Sokoban boards. See docstring in `transfer.py` 
+for instructions.
 
 

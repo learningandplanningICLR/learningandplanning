@@ -70,7 +70,7 @@ def get_configuration(
     git_info = None
 
     assert commandline_args.ex
-    from path import Path
+    from pathlib import Path
     vars_ = {'script': str(Path(commandline_args.ex).name)}
     exec(open(commandline_args.ex).read(), vars_)
     experiments = vars_['experiments_list']

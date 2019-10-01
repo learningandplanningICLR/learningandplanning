@@ -5,13 +5,12 @@ import random
 
 import numpy as np
 from mpi4py import MPI
-from mrunner.helpers.client_helper import inject_dict_to_gin
-
+from learning_and_planning.experiments.helpers.client_helper import \
+    inject_dict_to_gin
 from ourlib.distributed_utils import TAGS
 import gin.tf
 
 from learning_and_planning.mcts.auto_ml import AutoMLCreator
-#from learning_and_planning.mcts.evaluator_worker import gin_temp_context
 from contextlib import contextmanager
 
 @contextmanager
