@@ -1,3 +1,4 @@
+import os
 import re
 
 import cv2
@@ -36,9 +37,31 @@ AGENT_CODE = 5
 LIVES_CODE = 5
 
 
+# Orders in which keys are taken and doors are open.
+# one_room_shifted.txt and hall_way_shifted.txt are modifications of original
+# levels with all rooms coordinates increased by one (to avoid zero coordinates)
+KEYS_ORDER = {
+    "one_room_shifted.txt": [((1, 1), (1, 8))],
+    "four_rooms.txt": [((2, 2), (8, 8))],
+    "hall_way_shifted.txt": [((1, 1), (8, 1)), ((2, 1), (1, 8)), ((3, 1), (8, 8))],
+    "full_mr_map.txt": None,  # there are multiple possible orders
+}
+
+DOORS_ORDER = {
+    "one_room_shifted.txt": [((1, 1), (8, 9))],
+    "four_rooms.txt": [((1, 1), (3, 9))],
+    "hall_way_shifted.txt": [((1, 1), (9, 4)), ((2, 1), (9, 4)), ((3, 1), (9, 4))],
+    "full_mr_map.txt": None,  # there are multiple possible orders
+}
+
+# used for display only
+ROOM_ORDER = {
+    "hall_way_shifted.txt": [(1, 1), (2, 1), (3, 1)],
+    "four_rooms.txt": [(1, 1), (2, 1), (2, 2)],
+}
+
 class StaticRoom:
     """ Room data which does NOT change during episode (no keys or doors)"""
-    # TODO: allow multiple doors/keys in a single room?
     def __init__(self, loc, room_size):
         self.loc = loc
         self.size = room_size
@@ -69,23 +92,27 @@ class StaticRoom:
                     elif self.map[x, y] == TRAP_CODE:
                         self.traps.add((x, y))
 
-    # def reset(self):
-    #     self.generate_lists()
-
 
 tile_size = 10
+level_tile_size = 5
 hud_height = 10
 RENDERING_MODES = ['rgb_array', 'one_hot', "codes"]
 
 
 class ToyMR(gym.Env):
 
-    def __init__(self, map_file, max_lives=1, rescale_coordinates=False):
+    def __init__(self, map_file, max_lives=1, absolute_coordinates=False,
+                 doors_keys_scale=1, save_enter_cell=True, trap_reward=0.):
         """
+        Based on implementation provided here
+        https://github.com/chrisgrimm/deep_abstract_q_network/blob/master/toy_mr.py
 
         Args:
-            rescale_coordinates: if rescale coordinates to [0 ,1] in
-                observed state (
+            absolute_coordinates: If use absolute coordinates in observed state.
+                E.g. for room = (2, 3), agent = (1, 7), room size = 10, absolute
+                coordinates are (2.1, 3.7)
+            save_enter_cell: if state should consist enter_cell. Even if set to
+                False if max_lives > 1 enter_cell would be encoded into state.
         """
         self.map_file = map_file
         self.max_lives = max_lives
@@ -106,18 +133,40 @@ class ToyMR(gym.Env):
         self.door_neighbor_locs = []
         # self.action_ticker = 0
         self.action_space = Discrete(4)
-        self.doors_order = tuple(sorted(self.doors.keys()))
-        self.keys_order = tuple(sorted(self.keys.keys()))
+        # fix order of doors and keys used when cloning / restoring state
+        filename = os.path.basename(map_file)
+        assert filename in KEYS_ORDER, f"filename {filename} unknown, should " \
+            f"be one of {list(KEYS_ORDER.keys())}"
+        if KEYS_ORDER[filename] is None:
+            self.doors_order = tuple(sorted(self.doors.keys()))
+            self.keys_order = tuple(sorted(self.keys.keys()))
+        else:
+            self.doors_order = DOORS_ORDER[filename]
+            self.keys_order = KEYS_ORDER[filename]
+        assert all(
+            [(key_loc in self.keys) for key_loc in self.keys_order])
+        assert all(
+            [(door_loc in self.doors) for door_loc in self.doors_order])
+
+        self.absolute_coordinates = absolute_coordinates
+        if self.absolute_coordinates:
+            self.room_size = self.room.size[0]
+            for room in self.rooms.values():
+                assert room.size == (self.room_size, self.room_size)
+        self.doors_keys_scale = doors_keys_scale
+        self.save_enter_cell = save_enter_cell
+        self.trap_reward = trap_reward
         np_state = self.get_np_state()
         self.observation_space = Box(low=0, high=255, shape=np_state.shape, dtype=np.uint8)
-        # fix order of doors and keys used when cloning / restoring state
+
 
     @property
     def init_kwargs(self):
         return {
             attr: getattr(self, attr)
             for attr in (
-                'map_file', 'max_lives',
+                'map_file', 'max_lives', 'absolute_coordinates',
+                'doors_keys_scale', 'save_enter_cell', 'trap_reward'
             )
         }
 
@@ -161,16 +210,27 @@ class ToyMR(gym.Env):
     def get_state_named_tuple(self):
         attrs = dict()
 
-        attrs["agent"] = self.agent
-        attrs['.loc'] = self.room.loc
+        if not self.absolute_coordinates:
+            attrs["agent"] = self.agent
+            attrs['.loc'] = self.room.loc
+        else:
+            attrs["abs_position"] = tuple(
+                np.array(self.room.loc) * self.room_size +
+                np.array(self.agent)
+            )
         attrs['.num_keys'] = (self.num_keys,)
-        attrs["enter_cell"] = self.enter_cell
+        if self.max_lives > 1 or self.save_enter_cell:
+            attrs["enter_cell"] = self.enter_cell
 
         for i, key_position in enumerate(self.keys_order):
-            attrs['key_%s' % i] = (self.keys[key_position],)
+            attrs['key_%s' % i] = (
+                self.keys[key_position] * self.doors_keys_scale,
+            )
 
         for i, doors_possition in enumerate(self.doors_order):
-            attrs['door_%s' % i] = (self.doors[doors_possition],)
+            attrs['door_%s' % i] = (
+                self.doors[doors_possition] * self.doors_keys_scale,
+            )
 
         attrs["lives"] = (self.lives, )
 
@@ -178,10 +238,19 @@ class ToyMR(gym.Env):
 
         return tuple(sorted(attrs.items()))
 
+    def room_and_agent_coordinate(self, abs_coordinate: float):
+        room_coord = abs_coordinate // self.room_size
+        agent_coord = abs_coordinate % self.room_size
+        return room_coord, agent_coord
+
+    def room_and_agent_coordinates(self, abs_coordinates: tuple):
+        room_0, agent_0 = self.room_and_agent_coordinate(abs_coordinates[0])
+        room_1, agent_1 = self.room_and_agent_coordinate(abs_coordinates[1])
+        return (room_0, room_1), (agent_0, agent_1)
+
     def restore_full_state_from_np_array_version(self, state_np, quick=False):
         del quick
-        # TODO set shape
-        # assert state_np.shape == self.observation_space.shape
+        assert state_np.shape == self.observation_space.shape, f"{state_np.shape} {self.observation_space.shape}"
         # We will use this for structure and names, and ignore values
         assert state_np.shape == self.observation_space.shape
         # state_np = state_np[:, 0, 0]  # remove unused dimensions
@@ -197,7 +266,16 @@ class ToyMR(gym.Env):
                 self.agent = tuple(value)
             elif name == ".loc":
                 self.room = self.rooms[tuple(value)]
+            elif name == "abs_position":
+                assert self.absolute_coordinates
+                room_coor, agent_coor = \
+                    self.room_and_agent_coordinates(tuple(value))
+                self.agent = agent_coor
+                self.room = self.rooms[room_coor]
             elif name == "enter_cell":
+                assert self.max_lives > 1 or self.save_enter_cell, \
+                    "enter_cell is meant to be used in state only when " \
+                    "max_lives > 1 or when self.save_enter_cell == True"
                 self.enter_cell = tuple(value)
             elif name == ".num_keys":
                 self.num_keys = value[0]
@@ -206,13 +284,13 @@ class ToyMR(gym.Env):
                     'key_(?P<key_number>\d*)', name
                 ).group("key_number"))
                 key_position = self.keys_order[key_number]
-                self.keys[key_position] = bool(value[0])
+                self.keys[key_position] = bool(value[0] // self.doors_keys_scale)
             elif name.startswith("door"):
                 door_number = int(re.match(
                     'door_(?P<door_number>\d*)', name
                 ).group("door_number"))
                 door_position = self.doors_order[door_number]
-                self.doors[door_position] = bool(value[0])
+                self.doors[door_position] = bool(value[0] // self.doors_keys_scale)
             elif name == "lives":
                 self.lives = value[0]
             elif name == "terminal":
@@ -236,7 +314,7 @@ class ToyMR(gym.Env):
         state = np.array(state)
         assert (state >= 0).all()
         assert (state < 256).all()
-        state = state.astype(np.uint8)  # .reshape((-1, 1, 1))
+        state = state.astype(np.uint8)
         return state
 
     def clone_full_state(self):
@@ -387,6 +465,7 @@ class ToyMR(gym.Env):
                     self.doors[(self.room.loc, new_agent)] = False
             elif cell_type == TRAP_CODE:
                 self.lives -= 1
+                reward = self.trap_reward
                 if self.lives == 0:
                     self.terminal = True
                 else:
@@ -431,9 +510,6 @@ class ToyMR(gym.Env):
             return False
         return True
 
-    # def get_discovered_rooms(self):
-    #     return self.discovered_rooms
-
     def _get_encoded_room(self):
         encoded_room = np.zeros((self.room.size[0], self.room.size[1]), dtype=np.uint8)
         encoded_room[self.agent] = AGENT_CODE
@@ -444,15 +520,9 @@ class ToyMR(gym.Env):
             if room_coord == self.room.loc and present:
                 encoded_room[key_coord] = KEY_CODE
 
-        # for coord in self.room.keys:
-        #     encoded_room[coord] = KEY_CODE
-
         for (room_coord, door_coord), present in self.doors.items():
             if room_coord == self.room.loc and present:
                 encoded_room[door_coord] = DOOR_CODE
-
-        # for coord in self.room.doors:
-        #     encoded_room[coord] = DOOR_CODE
 
         for coord in self.room.traps:
             encoded_room[coord] = TRAP_CODE
@@ -467,15 +537,16 @@ class ToyMR(gym.Env):
         if mode == "one_hot":
             return self.get_np_state()
 
-    def save_map(self, file_name):
+    def save_map(self, file_name, tile_size=level_tile_size):
         pygame.init()
-        map_h = 4
-        map_w = 9
+        map_h = max(coord[1] for coord in self.rooms)
+        map_w = max(coord[0] for coord in self.rooms)
 
         map_ = pygame.Surface((tile_size * self.room.size[0] * map_w, tile_size * self.room.size[1] * map_h))
         map_.fill(BACKGROUND_COLOR)
 
         for room_loc in self.rooms:
+            print(f"loc {room_loc}, size {self.rooms[room_loc].size}")
             room = self.rooms[room_loc]
 
             room_x, room_y = room_loc
@@ -483,10 +554,11 @@ class ToyMR(gym.Env):
             room_y = (room_y - 1) * tile_size * room.size[1]
 
             if room == self.goal_room:
+                continue
                 rect = (room_x, room_y, tile_size * room.size[0], tile_size * room.size[1])
                 pygame.draw.rect(map_, (0, 255, 255), rect)
 
-                myfont = pygame.font.SysFont('Helvetica', 85)
+                myfont = pygame.font.SysFont('Helvetica', 8 * tile_size)
 
                 # render text
                 label = myfont.render("G", True, (0, 0, 0))
@@ -508,15 +580,17 @@ class ToyMR(gym.Env):
                 rect = (coord[0] * tile_size + room_x, coord[1] * tile_size + room_y, tile_size, tile_size)
                 pygame.draw.rect(map_, WALL_COLOR, rect)
 
-            # # draw key
-            # for coord in room.keys:
-            #     rect = (coord[0] * tile_size + room_x, coord[1] * tile_size + room_y, tile_size, tile_size)
-            #     pygame.draw.rect(map_, KEY_COLOR, rect)
+            # draw key
+            for room_coord, key_coord in self.keys.keys():
+                if room_coord == room.loc:
+                    rect = (key_coord[0] * tile_size + room_x, key_coord[1] * tile_size + room_y, tile_size, tile_size)
+                    pygame.draw.rect(map_, KEY_COLOR, rect)
 
             # # draw doors
-            # for coord in room.doors:
-            #     rect = (coord[0] * tile_size + room_x, coord[1] * tile_size + room_y, tile_size, tile_size)
-            #     pygame.draw.rect(map_, DOOR_COLOR, rect)
+            for room_coord, door_coord in self.doors.keys():
+                if room_coord == room.loc:
+                    rect = (door_coord[0] * tile_size + room_x, door_coord[1] * tile_size + room_y, tile_size, tile_size)
+                    pygame.draw.rect(map_, DOOR_COLOR, rect)
 
             # draw traps
             for coord in room.traps:
@@ -589,6 +663,7 @@ class DebugCloneRestoreWrapper(Wrapper):
             assert state == self.second_env.clone_full_state()
             # swap envs
             self.env, self.second_env = self.second_env, self.env
+            print(f"enter cell {self.env.enter_cell}")
         return self.env.step(action)
 
 
@@ -596,10 +671,13 @@ if __name__ == "__main__":
     import random
     from PIL import Image
 
-    map_file_ = 'mr_maps/four_rooms.txt'  # 'mr_maps/four_rooms.txt' 'mr_maps/full_mr_map.txt' 'mr_maps/one_room.txt'
+    map_file_ = 'mr_maps/four_rooms.txt'  # 'mr_maps/hall_way_shifted.txt' 'mr_maps/four_rooms.txt' 'mr_maps/full_mr_map.txt' 'mr_maps/one_room_shifted.txt'
 
-    env = ToyMR(map_file_, max_lives=5)
-    restore_env = ToyMR(map_file_, max_lives=5)
+    env_kwargs = dict(map_file=map_file_, max_lives=5, absolute_coordinates=True)
+    # env_kwargs = dict(map_file=map_file_, max_lives=1, save_enter_cell=False,
+    #                   absolute_coordinates=True)
+    env = ToyMR(**env_kwargs)
+    restore_env = ToyMR(**env_kwargs)
     env.save_map("/tmp/map")
 
     env.reset()
@@ -615,7 +693,7 @@ if __name__ == "__main__":
         im = Image.fromarray(ob)
         im.save(f"/tmp/mr{i}.png")
 
-    env = DebugCloneRestoreWrapper(ToyMR(map_file_, max_lives=5))
+    env = DebugCloneRestoreWrapper(ToyMR(**env_kwargs))
     # env = ToyMR(map_file_, max_lives=5)
     from gym.utils.play import play
     keys_to_action = {
