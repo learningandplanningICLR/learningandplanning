@@ -15,16 +15,17 @@ Run experiment with
 
 `mpirun -np 2 ./run_train_.sh learning_and_planning/experiments/chain_env/ensemble_kappa_0.py`
 
-`-np` argument sets number of processes, in our experiments we used value `24`, 
-but this requires appropriate number of cores available.
+`-np` argument sets number of processes, in our experiments we used value `24`.
 
 ## Experiment files
 
 All experiments specifications (which should be passed to `run_train_.sh`) are 
 inside learning_and_planning/experiments/ directory.
 
-Deep-sea experiments can be run with specifications from `chain_env` subdirectory.
+See following subdirectories for experiments presented in the paper.
 
-For multiboard-sokoban experiments see subdirectory `multiboard-sokoban`.
+* `chain_env` Deep-see experiments.
+* `toy_mr` Toy Montezuma Revenge experiments.
+* `sokoban_multiboard` Sokoban experiments on multiple boards with voting.
 
 
