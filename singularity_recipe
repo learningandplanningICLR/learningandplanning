@@ -1,0 +1,11 @@
+Bootstrap: docker
+From: ubuntu:19.04
+
+%files
+   requirements_cpu.txt requirements_cpu.txt
+
+%post
+    apt-get -y update
+    apt-get -y install git ffmpeg virtualenv libopenmpi-dev openmpi-bin openmpi-common python3-pip
+    pip3 install -r requirements_cpu.txt
+    apt-get -y install python3-opencv
