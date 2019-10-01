@@ -66,6 +66,32 @@ class RandomEnsembleGameMaskProcessor(GameMaskProcessor):
 
 
 @gin.configurable
+class BernoulliMask(GameMaskProcessor):
+
+    def __init__(self, number_of_ensembles, p, one_mask_per_game=True):
+        self.number_of_ensembles = number_of_ensembles
+        self.p = p
+        self.one_mask_per_game = one_mask_per_game
+
+    @property
+    def mask_size(self):
+        return (self.number_of_ensembles, )
+
+    def process_game(self, game):
+        if self.one_mask_per_game:
+            mask = np.random.binomial(1, self.p, self.mask_size)
+            return [(state, value, action, mask) for state, value, action in game]
+        else:
+            return [
+                (
+                    state, value, action,
+                    np.random.binomial(1, self.p, self.mask_size)
+                )
+                for state, value, action in game
+            ]
+
+
+@gin.configurable
 class SokobanFastEnvDispatcherGameMaskProcessor(GameMaskProcessor):
 
     def __init__(self, hash_to_num_fn):

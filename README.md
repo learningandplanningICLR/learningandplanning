@@ -1,7 +1,7 @@
 
 ## Uncertainty - sensitive learning and planning with ensembles
 
-This is anonymized codebase for experiemnents presented in paper "Uncertainty - sensitive learning and planning with ensembles" https://openreview.net/forum?id=SkglVlSFPS
+This is anonymized codebase for experiments presented in the paper "Uncertainty - sensitive learning and planning with ensembles" https://openreview.net/forum?id=SkglVlSFPS
 
 ## How to run it
 
@@ -33,6 +33,7 @@ See following subdirectories for experiments presented in the paper.
 * `chain_env` Deep-see experiments.
 * `toy_mr` Toy Montezuma Revenge experiments.
 * `sokoban_multiboard` Sokoban experiments on multiple boards with voting.
+* `sokoban_single_board` Sokoban experiments on single boards.
 * `transfer` Transfer across Sokoban boards. See docstring in `transfer.py` 
 for instructions.
 
