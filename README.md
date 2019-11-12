@@ -23,7 +23,7 @@ Run experiment with
 
 `-np` argument sets number of processes, in our experiments we used value `24`.
 
-## Experiment files
+## Experiment specification files
 
 All experiments specifications (which should be passed to `run_train_.sh`) are 
 inside `learning_and_planning/experiments/` directory.
@@ -37,4 +37,18 @@ See following subdirectories for experiments presented in the paper.
 * `transfer` Transfer across Sokoban boards. See docstring in `transfer.py` 
 for instructions.
 
+## Overview
+
+Training is done with MPI (entry point is `learning_and_planning/mcts/mpi_train.py`). 
+There is one process which performs training and logging (see `learning_and_planning/mcts/server.py`), other 
+processes perform data collection (`learning_and_planning/mcts/worker.py`).
+
+
+MCTS is implemented in `learning_and_planning/mcts/mcts_planner.py` and 
+`learning_and_planning/mcts/mcts_planner_with_voting.py`, see experiment 
+specification files to determine which class is used for given experiment (parameter 
+`create_agent.agent_name`).
+
+Neural Network architectures can be found in `learning_and_planning/mcts/mcts_planner.py` 
+(parameter `ValueBase.model_name`)
 
