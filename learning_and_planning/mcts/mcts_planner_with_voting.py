@@ -8,7 +8,7 @@ from learning_and_planning.mcts.tree import TreeNode, GraphNode
 
 
 @gin.configurable
-class MCTSValueWithVoting(MCTSBase):
+class MCTSWithVoting(MCTSBase):
 
     def __init__(self,
                  model,

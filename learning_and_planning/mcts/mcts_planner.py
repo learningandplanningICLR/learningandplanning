@@ -61,7 +61,7 @@ class MCTSBase(Planner):
 
 
 @gin.configurable
-class MCTSValue(MCTSBase):
+class MCTS(MCTSBase):
 
     def __init__(self,
                  model,
@@ -302,7 +302,7 @@ def game_evaluator_new(game, mode, gamma, solved, **kwargs):
 
 
 @gin.configurable
-class KC_MCTSValue(MCTSValue):
+class KC_MCTS(MCTS):
     def __init__(self, num_ensembles_per_game=None, ensemble_size=None, **kwargs):
         """
         Args:
@@ -318,7 +318,7 @@ class KC_MCTSValue(MCTSValue):
         self.ensemble_size = ensemble_size
         # indices of ensemble members to use
         self._current_episode_ensemble_indices = None
-        super(KC_MCTSValue, self).__init__(**kwargs)
+        super(KC_MCTS, self).__init__(**kwargs)
 
     def run_one_episode(self):
         # Sample current episode ensemble members and run one episode.
@@ -329,11 +329,11 @@ class KC_MCTSValue(MCTSValue):
                     replace=False
                 )
             )
-        return super(KC_MCTSValue, self).run_one_episode()
+        return super(KC_MCTS, self).run_one_episode()
 
     def _initialize_graph_node(self, initial_value, state, done, solved):
         # Same as parent method, but set ensembles to use in value accumulator.
-        new_node = super(KC_MCTSValue, self)._initialize_graph_node(
+        new_node = super(KC_MCTS, self)._initialize_graph_node(
             initial_value, state, done, solved=solved
         )
         if self.num_ensembles_per_game is not None:

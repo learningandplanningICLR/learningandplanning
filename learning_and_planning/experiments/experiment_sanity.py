@@ -20,13 +20,13 @@ base_config = {"create_agent.agent_name": "mcts",
                "ValueBase.activation": "identity",
                "ValueBase.model_name": "convnet_mnist",
                "ScalarValueTraits.dead_end_value": -2.0,
-               "MCTSValue.num_mcts_passes": 10,
-               "MCTSValue.num_sampling_moves": 0,
-               "MCTSValue.value_annealing": 1.0,
-               "MCTSValue.avoid_loops": True,
-               "MCTSValue.gamma": 0.99,
-               "MCTSValue.node_value_mode": "bootstrap",
-               "MCTSValue.episode_max_steps": 50,
+               "MCTS.num_mcts_passes": 10,
+               "MCTS.num_sampling_moves": 0,
+               "MCTS.value_annealing": 1.0,
+               "MCTS.avoid_loops": True,
+               "MCTS.gamma": 0.99,
+               "MCTS.node_value_mode": "bootstrap",
+               "MCTS.episode_max_steps": 50,
 
                "Server.min_replay_history": 1000,
                "PoloWrappedReplayBuffer.batch_size": 32,
@@ -41,7 +41,7 @@ base_config = {"create_agent.agent_name": "mcts",
                }
 
 
-params_grid = {"MCTSValue.avoid_loops": [True, False], "ValueBase.model_name": ["convnet_mnist",
+params_grid = {"MCTS.avoid_loops": [True, False], "ValueBase.model_name": ["convnet_mnist",
                                                                                 "kc_parametrized_cnn_v0_2"]}
 
 experiments_list = create_experiments_helper(experiment_name='Mcts sanity experiment',

@@ -3,8 +3,8 @@ import gin
 from learning_and_planning.envs.environments import sokoban_with_finite_number_of_games
 from learning_and_planning.envs.sokoban_env_creator import get_env_creator
 from learning_and_planning.mcts.env_model import ModelEnvPerfect
-from learning_and_planning.mcts.mcts_planner import MCTSValue
-from learning_and_planning.mcts.mcts_planner_with_voting import MCTSValueWithVoting
+from learning_and_planning.mcts.mcts_planner import MCTS
+from learning_and_planning.mcts.mcts_planner_with_voting import MCTSWithVoting
 from learning_and_planning.mcts.value import ValuePerfect
 from learning_and_planning.mcts.value_trainable import ValueVanilla, ValueEnsemble, ValueZero, MPIValueWrapper
 from learning_and_planning.mcts.replay_buffer import circular_replay_buffer_mcts
@@ -78,7 +78,7 @@ def create_agent(sess,
     if callable(agent_name):
         planner = agent_name(value=value, model=model)
     elif agent_name == 'mcts':
-        planner = MCTSValue(value=value, model=model)
+        planner = MCTS(value=value, model=model)
     else:
         raise RuntimeError("Unknown step name {}".format(agent_name))
 

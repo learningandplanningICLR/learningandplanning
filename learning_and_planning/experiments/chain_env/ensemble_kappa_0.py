@@ -3,7 +3,7 @@ from learning_and_planning.experiments.helpers.specification_helper import \
 from learning_and_planning.mcts.value_accumulators_ensembles import ConstKappa
 
 
-base_config = {"create_agent.agent_name": "@KC_MCTSValue",
+base_config = {"create_agent.agent_name": "@KC_MCTS",
                "create_agent.value_function_name": "@ValueEnsemble2",
                "create_agent.replay_capacity": 100,
 
@@ -23,19 +23,19 @@ base_config = {"create_agent.agent_name": "@KC_MCTSValue",
                "RandomGameMask.number_of_ensembles": 20,
                "ConstantEnsembleMask.number_of_ensembles": 20,
                "linear_multi_head.num_heads": 20,
-               "KC_MCTSValue.num_ensembles_per_game": 10,
-               "KC_MCTSValue.ensemble_size": 20,
+               "KC_MCTS.num_ensembles_per_game": 10,
+               "KC_MCTS.ensemble_size": 20,
                "ValueEnsemble2.accumulator_fn": "@EnsembleValueAccumulatorMeanStdMaxUCB",
                "PoloOutOfGraphReplayBuffer.mask_game_processor_fn": "@RandomGameMask",
 
                "ScalarValueTraits.dead_end_value": 0.,
-               "MCTSValue.num_mcts_passes": 10,
-               "MCTSValue.avoid_loops": False,
-               "MCTSValue.gamma": 0.99,
-               "MCTSValue.node_value_mode": "bootstrap",
-               "MCTSValue.episode_max_steps": 100,
-               "MCTSValue.avoid_history_coeff": 0,
-               "MCTSValue.num_sampling_moves": 0,
+               "MCTS.num_mcts_passes": 10,
+               "MCTS.avoid_loops": False,
+               "MCTS.gamma": 0.99,
+               "MCTS.node_value_mode": "bootstrap",
+               "MCTS.episode_max_steps": 100,
+               "MCTS.avoid_history_coeff": 0,
+               "MCTS.num_sampling_moves": 0,
 
                "Server.min_replay_history": 100,
                "Server.log_every_n": 10,
@@ -50,7 +50,7 @@ base_config = {"create_agent.agent_name": "@KC_MCTSValue",
 
 params_grid = {
     "get_env_creator.N": [40],  # Here set problem size
-    "MCTSValue.episode_max_steps": [51, ],  # should be no less than N for ChainEnvironment
+    "MCTS.episode_max_steps": [51, ],  # should be no less than N for ChainEnvironment
     "EnsembleValueAccumulatorMeanStdMaxUCB.kappa_fn": [ConstKappa(0),],
     "ValueBase.model_name": ["linear_multi_head",],
 }

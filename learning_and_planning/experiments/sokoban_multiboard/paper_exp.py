@@ -2,7 +2,7 @@ from ourlib.rl_misc import LinearlyDecayingEpsilon
 from learning_and_planning.experiments.helpers.specification_helper import \
     create_experiments_helper
 
-base_config = {"create_agent.agent_name": "@MCTSValueWithVoting",
+base_config = {"create_agent.agent_name": "@MCTSWithVoting",
                "create_agent.value_function_name": "ensemble",
                "create_agent.replay_capacity": 10000,
 
@@ -28,12 +28,12 @@ base_config = {"create_agent.agent_name": "@MCTSValueWithVoting",
                "ValueEnsemble.accumulator_fn": "@EnsembleValueAccumulatorVoting",
                "EnsembleValueAccumulatorVoting.bonus_fn": "@ucb1",  # ucb1
 
-               "MCTSValueWithVoting.num_mcts_passes": 10,
-               "MCTSValueWithVoting.num_sampling_moves": 0,
-               "MCTSValueWithVoting.value_annealing": 1.0,
-               "MCTSValueWithVoting.avoid_loops": True,
-               "MCTSValueWithVoting.node_value_mode": "factual_rewards",
-               "MCTSValueWithVoting.differ_final_rating": False,
+               "MCTSWithVoting.num_mcts_passes": 10,
+               "MCTSWithVoting.num_sampling_moves": 0,
+               "MCTSWithVoting.value_annealing": 1.0,
+               "MCTSWithVoting.avoid_loops": True,
+               "MCTSWithVoting.node_value_mode": "factual_rewards",
+               "MCTSWithVoting.differ_final_rating": False,
 
                "Server.min_replay_history": 1000,
                "PoloOutOfGraphReplayBuffer.solved_unsolved_ratio": 0.5,
@@ -43,7 +43,7 @@ base_config = {"create_agent.agent_name": "@MCTSValueWithVoting",
                "game_buffer_size": 25,
                "Server.log_every_n": 50,
                "run_eval_worker": False,
-               #"EvaluatorWorker.eval_planners_params": {'eval_10_mcts': {"MCTSValueWithVoting.num_mcts_passes": 10}},
+               #"EvaluatorWorker.eval_planners_params": {'eval_10_mcts': {"MCTSWithVoting.num_mcts_passes": 10}},
                }
 
 
@@ -54,10 +54,10 @@ params_grid = {"get_env_creator.seed": [None],  # 1230
                "PoloWrappedReplayBuffer.batch_size___": [96],  # 32 * 4
                "ValueEnsemble.prior_scale": [0.1],
                "EnsembleValueAccumulatorVoting.bonus_loading": [0.],  # info: similar to no-ensemble case
-               "MCTSValueWithVoting.gamma": [0.99],
-               "MCTSValueWithVoting.avoid_history_coeff": [-0.5],
+               "MCTSWithVoting.gamma": [0.99],
+               "MCTSWithVoting.avoid_history_coeff": [-0.5],
                "EnsembleValueTraits.dead_end_value": [-0.1],
-               "MCTSValueWithVoting.episode_max_steps": [200],
+               "MCTSWithVoting.episode_max_steps": [200],
                "ValueBase.learning_rate_fn": [LinearlyDecayingEpsilon(lr=0.00025,
                                                                       decay_period=2000.0 * 100,
                                                                       warmup_steps=100 * 100,
