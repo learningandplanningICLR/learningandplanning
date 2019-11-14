@@ -49,6 +49,9 @@ MCTS is implemented in `learning_and_planning/mcts/mcts_planner.py` and
 specification files to determine which class is used for given experiment (parameter 
 `create_agent.agent_name`).
 
-Neural Network architectures can be found in `learning_and_planning/mcts/mcts_planner.py` 
-(parameter `ValueBase.model_name`)
+Criterions for action choice methods based on ensembles can be found in `value_accumulators_ensembles.py`.
+
+For Neural Network architectures see `learning_and_planning/mcts/mcts_planner.py`.
+
+Training masks are implemented in `learning_and_planning/mcts/mask_game_processors.py`. 
 
