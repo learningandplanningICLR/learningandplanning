@@ -51,6 +51,7 @@ class SokobanEnvFast(gym.Env):
         self.reward_finished = reward_finished
         self.action_space = Discrete(4)
         self.observation_space = Box(low=0, high=1, shape=(self.dim_room[0], self.dim_room[1], 7), dtype=np.uint8)
+        self.state_space = self.observation_space  # state == observation
 
         self._internal_state = None
         self.fast_state_eq = fast_state_eq

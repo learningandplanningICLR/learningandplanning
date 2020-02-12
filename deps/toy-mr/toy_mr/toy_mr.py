@@ -158,6 +158,7 @@ class ToyMR(gym.Env):
         self.trap_reward = trap_reward
         np_state = self.get_np_state()
         self.observation_space = Box(low=0, high=255, shape=np_state.shape, dtype=np.uint8)
+        self.state_space = self.observation_space  # state == observation
 
 
     @property

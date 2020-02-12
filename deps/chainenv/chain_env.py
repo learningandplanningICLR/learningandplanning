@@ -50,6 +50,7 @@ class ChainEnvironment(gym.Env):
           self.display_mask[x*_cs:x*_cs + ChainEnvironment.render_cell_size:3,
            y*_cs:y*_cs + ChainEnvironment.render_cell_size:3, :] = 0
     self.observation_space = Box(low=0, high=1, shape=(self.N, self.N, 1), dtype=np.uint8)
+    self.state_space = self.observation_space  # state == observation
     self.action_space = Discrete(2)
 
   @property
