@@ -77,10 +77,11 @@ class PoloOutOfGraphReplayBuffer(object):
                  max_sample_attempts=MAX_SAMPLE_ATTEMPTS,
                  extra_storage_types=None,
                  observation_dtype=np.uint8,
-                 state_dtype=np.int32,
+                 state_dtype=np.uint8,
                  renderer=None,
                  solved_unsolved_ratio=None,
-                 mask_game_processor_fn=DummyGameMaskProcessor):
+                 mask_game_processor_fn=DummyGameMaskProcessor,
+                 store_states=True):
         """Initializes OutOfGraphReplayBuffer.
 
     Args:
@@ -95,6 +96,8 @@ class PoloOutOfGraphReplayBuffer(object):
         contents that will be stored and returned by sample_transition_batch.
       observation_dtype: np.dtype, type of the observations. Defaults to
         np.uint8 for Atari 2600.
+      store_states: either to store states or render them into observations (in
+        both cases assumes that states would be passed to add)
 
     Raises:
       ValueError: If replay_capacity is too small to hold at least one
@@ -130,75 +133,34 @@ class PoloOutOfGraphReplayBuffer(object):
             self._extra_storage_types = extra_storage_types
         else:
             self._extra_storage_types = []
-        # self._create_storage()
-        #self._store = []
         self._store = {'solved': [], 'unsolved': []}
 
         self.add_count = {'solved': np.array(0), 'unsolved': np.array(0)}
         self.mask_game_processor = mask_game_processor_fn()
+        self.store_states = store_states
+        if self.store_states:
+            assert renderer is not None, "You need to pass renderer to store observations"
 
     @property
     def total_count(self):
         return sum(self.add_count.values())
 
-    # def _create_storage(self):
-    #  """Creates the numpy arrays used to store transitions.
-    #  """
-    #  self._store = {}
-    #  for storage_element in self.get_storage_signature():
-    #    array_shape = [self._replay_capacity] + list(storage_element.shape)
-    #    self._store[storage_element.name] = np.empty(
-    #        array_shape, dtype=storage_element.type)
-
-    # def get_add_args_signature(self):
-    #  """The signature of the add function.
-
-    #  Note - Derived classes may return a different signature.
-
-    #  Returns:
-    #    list of ReplayElements defining the type of the argument signature needed
-    #      by the add function.
-    #  """
-    #  return self.get_storage_signature()
-
-    # def get_storage_signature(self):
-    #  """Returns a default list of elements to be stored in this replay memory.
-
-    #  Note - Derived classes may return a different signature.
-
-    #  Returns:
-    #    list of ReplayElements defining the type of the contents stored.
-    #  """
-    #  storage_elements = [
-    #      ReplayElement('Game_state', (), np.array)
-    #  ]
-
-    #  for extra_replay_element in self._extra_storage_types:
-    #    storage_elements.append(extra_replay_element)
-    #  return storage_elements
 
     def add(self, game, *args, **kwargs):
         """Adds a transition to the replay memory.
 
-    This function checks the types and handles the padding at the beginning of
-    an episode. Then it calls the _add function.
-
-    Since the next_observation in the transition will be the observation added
-    next there is no need to pass it.
-
-    If the replay memory is at capacity the oldest transition will be discarded.
-
-    Args:
-      observation: np.array with shape observation_shape.
-      action: int, the action in the transition.
-      reward: float, the reward received in the transition.
-      terminal: A uint8 acting as a boolean indicating whether the transition
-                was terminal (1) or not (0).
-      *args: extra contents with shapes and dtypes according to
-        extra_storage_types.
-    """
+        Game is list of tuples (state, value, action)
+        """
         # self._check_add_types(game, *args)
+        if not self.store_states:
+            # Parse game, replace states with observations
+            for i, transition in enumerate(game):
+                observation = self._renderer([transition[0]])[0]
+                new_transition = (observation,) + transition[1:]
+                game[i] = new_transition
+
         self._add(game, *args, **kwargs)
+
 
     def _add(self, *args, **kwargs):
         """Internal add method to add to the storage arrays.
@@ -207,6 +169,7 @@ class PoloOutOfGraphReplayBuffer(object):
       *args: All the elements in a transition.
     """
         assert 'solved' in kwargs, "Need to specify if the game was solved or not"
+
         key = 'solved' if kwargs['solved'] else 'unsolved'
         game = args[0]
         game = self.mask_game_processor.process_game(game)
@@ -220,37 +183,6 @@ class PoloOutOfGraphReplayBuffer(object):
 
         self.add_count[key] += 1
 
-        # arg_names = [e.name for e in self.get_add_args_signature()]
-        # for arg_name, arg in zip(arg_names, args):
-        #  self._store[arg_name][cursor] = arg
-
-        # self.add_count += 1
-
-    # def _check_add_types(self, *args):
-    #  """Checks if args passed to the add method match those of the storage.
-
-    #  Args:
-    #    *args: Args whose types need to be validated.
-
-    #  Raises:
-    #    ValueError: If args have wrong shape or dtype.
-    #  """
-    #  if len(args) != len(self.get_add_args_signature()):
-    #    raise ValueError('Add expects {} elements, received {}'.format(
-    #        len(self.get_add_args_signature()), len(args)))
-    #  for arg_element, store_element in zip(args, self.get_add_args_signature()):
-    #    if isinstance(arg_element, np.ndarray):
-    #      arg_shape = arg_element.shape
-    #    elif isinstance(arg_element, tuple) or isinstance(arg_element, list):
-    #      # TODO(b/80536437). This is not efficient when arg_element is a list.
-    #      arg_shape = np.array(arg_element).shape
-    #    else:
-    #      # Assume it is scalar.
-    #      arg_shape = tuple()
-    #    store_element_shape = tuple(store_element.shape)
-    #    if arg_shape != store_element_shape:
-    #      raise ValueError('arg has shape {}, expected {}'.format(
-    #          arg_shape, store_element_shape))
 
     def is_empty(self, key):
         """Is the Replay Buffer empty?"""
@@ -265,39 +197,6 @@ class PoloOutOfGraphReplayBuffer(object):
         """Index to the location where the next transition will be written."""
         return self.add_count[key] % self._replay_capacity
 
-    # def get_range(self, array, start_index, end_index):
-    #  """Returns the range of array at the index handling wraparound if necessary.
-
-    #  Args:
-    #    array: np.array, the array to get the stack from.
-    #    start_index: int, index to the start of the range to be returned. Range
-    #      will wraparound if start_index is smaller than 0.
-    #    end_index: int, exclusive end index. Range will wraparound if end_index
-    #      exceeds replay_capacity.
-
-    #  Returns:
-    #    np.array, with shape [end_index - start_index, array.shape[1:]].
-    #  """
-    #  assert end_index > start_index, 'end_index must be larger than start_index'
-    #  assert end_index >= 0
-    #  assert start_index < self._replay_capacity
-    #  if not self.is_full():
-    #    assert end_index <= self.cursor(), (
-    #        'Index {} has not been added.'.format(start_index))
-
-    #  # Fast slice read when there is no wraparound.
-    #  if start_index % self._replay_capacity < end_index % self._replay_capacity:
-    #    return_array = array[start_index:end_index, ...]
-    #  # Slow list read.
-    #  else:
-    #    indices = [(start_index + i) % self._replay_capacity
-    #               for i in range(end_index - start_index)]
-    #    return_array = array[indices, ...]
-    #  return return_array
-
-    # def get_game(self, index):
-    #  return self.get_range(self._store['Games'], index - self._stack_size + 1,
-    #                        index + 1)
 
     def _create_batch_arrays(self, batch_size, num_steps=1):
         """Create a tuple of arrays with the type of get_transition_elements.
@@ -404,10 +303,14 @@ class PoloOutOfGraphReplayBuffer(object):
                 for element_array, element in zip(batch_arrays[key], transition_elements[key]):
 
                     # TODO: below hardcoded 0, 1, 2, which might break types
-                    if element.name == 'state':
-                        element_array[batch_element] = state_value[0]
-                    # if element.name == 'observation':
-                    #    element_array[batch_element] = state_value[1]
+                    # 0 - state or observation (depending on self.store_states)
+                    if element.name == 'observation':
+                        state_or_observation = state_value[0]
+                        if self.store_states:
+                            observation = self._renderer([state_or_observation])[0]
+                        else:
+                            observation = state_or_observation
+                        element_array[batch_element] = observation
                     elif element.name == 'value':
                         element_array[batch_element] = state_value[1]
                     elif element.name == 'action':
@@ -415,19 +318,6 @@ class PoloOutOfGraphReplayBuffer(object):
                     elif element.name == 'mask':
                         element_array[batch_element] = state_value[3]
                     # We assume the other elements are filled in by the subclass.
-
-            if self._renderer is not None:
-                if batch_arrays[key][0].shape[0] > 0:
-                    state_idx = None
-                    observation_idx = None
-                    for idx, element in enumerate(transition_elements[key]):
-                        if element.name == 'state':
-                            state_idx = idx
-                        elif element.name == 'observation':
-                            observation_idx = idx
-                        if state_idx is not None and observation_idx is not None:
-                            break
-                    batch_arrays[key][observation_idx][...] = self._renderer(batch_arrays[key][state_idx])
 
         # each batch_arrays is a 'tuple': (batch/2, states), (batch/2, obs), (batch/2, values)
         result = tuple(np.concatenate([entry_solved, entry_unsolved], axis=0)
@@ -438,19 +328,18 @@ class PoloOutOfGraphReplayBuffer(object):
     def get_transition_elements(self, batch_size=None, num_steps=0):
         """Returns a 'type signature' for sample_transition_batch.
 
-    Args:
-      batch_size: int, number of transitions returned. If None, the default
-        batch_size will be used.
-    Returns:
-      signature: A namedtuple describing the method's return type signature.
-    """
+        Args:
+          batch_size: int, number of transitions returned. If None, the default
+            batch_size will be used.
+        Returns:
+          signature: A namedtuple describing the method's return type signature.
+        """
         batch_size = self._batch_size if batch_size is None else batch_size
         bs = self._get_bs_structure(batch_size)
 
         transition_elements = {}
         for key in ['solved', 'unsolved']:
             transition_elements[key] = [
-                ReplayElement('state', (bs[key],) + self._state_shape, self._state_dtype),
                 ReplayElement('observation', (bs[key],) + self._observation_shape, self._observation_dtype),
                 ReplayElement('value', (bs[key],), np.float32),
                 ReplayElement('action', (bs[key],), np.uint8),
@@ -464,22 +353,6 @@ class PoloOutOfGraphReplayBuffer(object):
 
     def _generate_filename(self, checkpoint_dir, name, suffix):
         return os.path.join(checkpoint_dir, '{}_ckpt.{}.gz'.format(name, suffix))
-
-    # def _return_checkpointable_elements(self):
-    #  """Return the dict of elements of the class for checkpointing.
-
-    #  Returns:
-    #    checkpointable_elements: dict containing all non private (starting with
-    #    _) members + all the arrays inside self._store.
-    #  """
-    #  checkpointable_elements = {}
-    #  for member_name, member in self.__dict__.items():
-    #    if member_name == '_store':
-    #      for array_name, array in self._store.items():
-    #        checkpointable_elements[STORE_FILENAME_PREFIX + array_name] = array
-    #    elif not member_name.startswith('_'):
-    #      checkpointable_elements[member_name] = member
-    #  return checkpointable_elements
 
     def save(self, checkpoint_dir, iteration_number):
         """Save the OutOfGraphReplayBuffer attributes into a file.
@@ -513,35 +386,6 @@ class PoloOutOfGraphReplayBuffer(object):
                 except tf.errors.NotFoundError:
                     pass
 
-        # checkpointable_elements = self._return_checkpointable_elements()
-
-        # for attr in checkpointable_elements:
-        #  filename = self._generate_filename(checkpoint_dir, attr, iteration_number)
-        #  with tf.gfile.Open(filename, 'wb') as f:
-        #    with gzip.GzipFile(fileobj=f) as outfile:
-        #      # Checkpoint the np arrays in self._store with np.save instead of
-        #      # pickling the dictionary is critical for file size and performance.
-        #      # STORE_FILENAME_PREFIX indicates that the variable is contained in
-        #      # self._store.
-        #      if attr.startswith(STORE_FILENAME_PREFIX):
-        #        array_name = attr[len(STORE_FILENAME_PREFIX):]
-        #        np.save(outfile, self._store[array_name], allow_pickle=False)
-        #      # Some numpy arrays might not be part of storage
-        #      elif isinstance(self.__dict__[attr], np.ndarray):
-        #        np.save(outfile, self.__dict__[attr], allow_pickle=False)
-        #      else:
-        #        pickle.dump(self.__dict__[attr], outfile)
-
-        #  # After writing a checkpoint file, we garbage collect the checkpoint file
-        #  # that is four versions old.
-        #  stale_iteration_number = iteration_number - CHECKPOINT_DURATION
-        #  if stale_iteration_number >= 0:
-        #    stale_filename = self._generate_filename(checkpoint_dir, attr,
-        #                                             stale_iteration_number)
-        #    try:
-        #      tf.gfile.Remove(stale_filename)
-        #    except tf.errors.NotFoundError:
-        #      pass
 
     def load(self, checkpoint_dir, suffix):
         """Restores the object from bundle_dictionary and numpy checkpoints.
@@ -611,6 +455,7 @@ class PoloWrappedReplayBuffer(object):
                  max_sample_attempts=MAX_SAMPLE_ATTEMPTS,
                  extra_storage_types=None,
                  observation_dtype=np.uint8,
+                 state_dtype=np.uint8,
                  renderer=None,
                  num_steps=0):
 
@@ -656,7 +501,7 @@ class PoloWrappedReplayBuffer(object):
                 update_horizon, max_sample_attempts,
                 observation_dtype=observation_dtype,
                 extra_storage_types=extra_storage_types,
-                renderer=renderer)
+                renderer=renderer, state_dtype=state_dtype)
 
         self.create_sampling_ops(use_staging, num_steps)
 
@@ -725,12 +570,6 @@ class PoloWrappedReplayBuffer(object):
         for element, element_type in zip(transition, transition_type):
             element.set_shape(element_type.shape)
 
-
-
-
-
-
-
     def _set_up_staging(self, transition):
         """Sets up staging ops for prefetching the next transition.
 
@@ -778,7 +617,7 @@ class PoloWrappedReplayBuffer(object):
 
         # TODO(bellemare): These are legacy and should probably be removed in
         # future versions.
-        self.states = self.transition['state']
+        # self.states = self.transition['state']
         self.observations = self.transition['observation']
         self.values = self.transition['value']
         self.actions = self.transition['action']
