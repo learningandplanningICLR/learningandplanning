@@ -2,7 +2,7 @@ import gin
 
 from learning_and_planning.envs.environments import sokoban_with_finite_number_of_games
 from learning_and_planning.envs.sokoban_env_creator import get_env_creator
-from learning_and_planning.mcts.env_model import ModelEnvPerfect
+from learning_and_planning.mcts.env_model import ModelEnvPerfect, SimulatedSokobanEnvModel
 from learning_and_planning.mcts.mcts_planner import MCTS
 from learning_and_planning.mcts.mcts_planner_with_voting import MCTSWithVoting
 from learning_and_planning.mcts.value import ValuePerfect
@@ -21,6 +21,10 @@ except ImportError:
     MPI = None
 
 
+@gin.configurable
+def use_perfect_env(value=True):
+    return value
+
 # noinspection PyArgumentList
 @gin.configurable
 def create_agent(sess,
@@ -32,9 +36,14 @@ def create_agent(sess,
 
     env = get_env_creator(num_envs=1)()
     env.reset()
-    model = ModelEnvPerfect(env, force_hashable=False)
+    if use_perfect_env():
+        true_model = ModelEnvPerfect(env, force_hashable=False)
+        model = ModelEnvPerfect(env, force_hashable=False)
+    else:
+        true_model = ModelEnvPerfect(env, force_hashable=False)
+        model = SimulatedSokobanEnvModel(env, force_hashable=False)
 
-    state_shape, _ = model.state_space()
+    state_shape, state_dtype = model.state_space()
     obs_shape, obs_dtype = model.observation_space()
     renderer = model.renderer()
 
@@ -46,7 +55,9 @@ def create_agent(sess,
         use_staging=use_staging,
         update_horizon=1,
         observation_dtype=obs_dtype,
-        renderer=renderer)
+        renderer=renderer,
+        state_dtype=state_dtype,
+    )
 
     model_creator_template = None
     if value_function_to_share_network is not None:
@@ -76,7 +87,10 @@ def create_agent(sess,
         value = MPIValueWrapper(value)
 
     if callable(agent_name):
-        planner = agent_name(value=value, model=model)
+        if use_perfect_env():
+            planner = agent_name(value=value, model=model)
+        else:
+            planner = agent_name(value=value, model=model, true_model=true_model)
     elif agent_name == 'mcts':
         planner = MCTS(value=value, model=model)
     else:
