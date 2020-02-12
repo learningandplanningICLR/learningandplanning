@@ -108,6 +108,9 @@ class MCTSWithVoting(MCTSBase):
         new_root.value_acc.add_auxiliary(self.avoid_history_coeff())
         return new_root
 
+    def initialize_root(self):
+        raise NotImplementedError("should not happen")
+
     def expand_leaf(self, leaf: TreeNode):
         if leaf is None:  # Dead End
             return self._value.traits.dead_end
@@ -326,6 +329,9 @@ class MCTSWithVotingTwoModels(MCTSBase):
         new_root = TreeNode(new_node)
         new_root.value_acc.add_auxiliary(self.avoid_history_coeff())
         return new_root
+
+    def initialize_root(self):
+        raise NotImplementedError("should not happen")
 
     def expand_leaf(self, leaf: TreeNode):
         if leaf is None:  # Dead End

@@ -30,7 +30,7 @@ inside `learning_and_planning/experiments/` directory.
 
 See following subdirectories for experiments presented in the paper.
 
-* `chain_env` Deep-see experiments.
+* `chain_env` Deep-sea experiments.
 * `toy_mr` Toy Montezuma Revenge experiments.
 * `sokoban_multiboard` Sokoban experiments on multiple boards with voting.
 * `sokoban_single_board` Sokoban experiments on single boards.

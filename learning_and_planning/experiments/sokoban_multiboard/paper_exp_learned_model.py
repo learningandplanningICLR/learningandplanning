@@ -1,7 +1,7 @@
 from learning_and_planning.experiments.helpers.specification_helper import \
     create_experiments_helper
 
-base_config = {"create_agent.agent_name": "@MCTSWithVoting",
+base_config = {"create_agent.agent_name": "@MCTSWithVotingTwoModels",
                "create_agent.value_function_name": "ensemble",
                "create_agent.replay_capacity": 1000,
 
@@ -29,30 +29,31 @@ base_config = {"create_agent.agent_name": "@MCTSWithVoting",
                "ValueEnsemble.num_ensemble": 3,
 
                "EnsembleValueTraits.dead_end_value": -2.0,
-               "MCTSWithVoting.num_mcts_passes": 10,
-               "MCTSWithVoting.num_sampling_moves": 0,
-               "MCTSWithVoting.avoid_loops": True,
-               "MCTSWithVoting.gamma": 0.99,
-               "MCTSWithVoting.episode_max_steps": 200,
-               "MCTSWithVoting.avoid_history_coeff": -2.,
+               "MCTSWithVotingTwoModels.num_mcts_passes": 10,
+               "MCTSWithVotingTwoModels.num_sampling_moves": 0,
+               "MCTSWithVotingTwoModels.avoid_loops": True,
+               "MCTSWithVotingTwoModels.gamma": 0.99,
+               "MCTSWithVotingTwoModels.episode_max_steps": 200,
+               "MCTSWithVotingTwoModels.avoid_history_coeff": -2.,
 
                "Server.min_replay_history": 1000,
                "PoloOutOfGraphReplayBuffer.solved_unsolved_ratio": 0.5,
-               "curriculum": False,
                "training_steps": 500000,
                "train_every_num_steps": 100,
                "game_buffer_size": 25,
                "run_eval_worker": False,
                "Server.log_every_n": 50,
-               "MCTSWithVoting.node_value_mode": "bootstrap",
+               "MCTSWithVotingTwoModels.node_value_mode": "bootstrap",
                }
 
 
 params_grid = {
-    "PoloWrappedReplayBuffer.batch_size": [96],
+    "use_perfect_env.value": [False,],
+    "SimulatedSokobanEnvModel.model_path": ["checkpoints/epoch.0003.hdf5"],
+    "PoloWrappedReplayBuffer.batch_size": [96,],
 }
 
-experiments_list = create_experiments_helper(experiment_name='sokoban_ensembles',
+experiments_list = create_experiments_helper(experiment_name='sokoban with learned model',
                                              python_path='.:./deps/gym-sokoban:./deps/ourlib:'
                                                          './deps/baselines:./deps/dopamine:./deps/gym-sokoban-fast:./deps/chainenv:./polo_plus/kc:./deps/toy-mr:',
                                              paths_to_dump='',

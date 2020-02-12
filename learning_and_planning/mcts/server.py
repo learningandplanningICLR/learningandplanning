@@ -231,6 +231,24 @@ class Server(object):
                     game_statistics_collector.update_aux_running_averages('graph_size', graph_size, (100,))
                     game_statistics_collector.update_aux_running_averages('game_ensemble_std', game_ensemble_std, (100,))
 
+                    # log_names = [
+                    #     f"wm_next_frame_errors_rate",
+                    #     f"wm_reward_errors_rate",
+                    #     f"wm_missed_done_rate",
+                    #     f"wm_false_done_rate",
+                    #     f"wm_any_missed_done",
+                    #     f"wm_any_false_done",
+                    # ]
+                    # for name in log_names:
+                    #     game_statistics_collector.update_aux_running_averages(
+                    #         name,
+                    #         deserialized_data[name + f"_{i}"],
+                    #         (100,)
+                    #     )
+
+                    game_statistics_collector.update_aux_running_averages(
+                        'game_ensemble_std', game_ensemble_std, (100,))
+
                     # source-1 due to the fact that rank=0 is the server
                     workers_results[source-1] = worker_result
 
@@ -258,8 +276,8 @@ class Server(object):
                     logger.record_tabular("Steps per sec", step_count / (time.time()-start))
                     logger.record_tabular("Time", (time.time()-start))
                     logger.record_tabular("number_of_removed_games", number_of_removed_games)
-                    logger.record_tabular("num_solved", self._replay.memory.add_count['solved'])
-                    logger.record_tabular("num_unsolved", self._replay.memory.add_count['unsolved'])
+                    logger.record_tabular("num_solved", float(self._replay.memory.add_count['solved']))
+                    logger.record_tabular("num_unsolved", float(self._replay.memory.add_count['unsolved']))
 
                     # avg_ = np.array(avg_buff)
                     avg_skip_ = np.array(avg_skip_buff)

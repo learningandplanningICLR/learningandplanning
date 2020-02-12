@@ -117,12 +117,12 @@ class Worker(object):
                 f"env_curriculum_{i}": 0,
                 f"avg_skip_{i}": 0,
                 f"worker_avg_result_{i}": 0,
-                f"wm_next_frame_errors_rate_{i}": 0.,
-                f"wm_reward_errors_rate_{i}": 0.,
-                f"wm_missed_done_rate_{i}": 0.,
-                f"wm_false_done_rate_{i}": 0.,
-                f"wm_any_missed_done_{i}": 0.,
-                f"wm_any_false_done_{i}": 0.,
+                # f"wm_next_frame_errors_rate_{i}": 0.,
+                # f"wm_reward_errors_rate_{i}": 0.,
+                # f"wm_missed_done_rate_{i}": 0.,
+                # f"wm_false_done_rate_{i}": 0.,
+                # f"wm_any_missed_done_{i}": 0.,
+                # f"wm_any_false_done_{i}": 0.,
             }
             if self.auto_ml_creator.is_auto_ml_present:
                 fake_game_kwargs[f"auto_ml_parameters_{i}"] = self.auto_ml_creator.fake_data()
@@ -155,22 +155,22 @@ class Worker(object):
             game_ensemble_std = np.mean([np.std(node.value_acc.get()) for node in info['nodes']])
             worker_avg_result = smooth_coeff * worker_avg_result + (1 - smooth_coeff) * game_solved
 
-            if_done_fp = float(info["wm_errors"]["if_done_false_positives"])
-            if_done_tp = float(info["wm_errors"]["if_done_true_positives"])
-            if_done_fn = float(info["wm_errors"]["if_done_false_negatives"])
-            if_done_tn = float(info["wm_errors"]["if_done_true_negatives"])
-            if if_done_fn == 0:
-                missed_done_rate = 0.
-            else:
-                missed_done_rate = if_done_fn / (if_done_fn + if_done_tp)
-
-            if if_done_fp == 0.:
-                false_done_rate = 0.
-            else:
-                false_done_rate = if_done_fp / (if_done_fp + if_done_tn)
-
-            any_missed_done = if_done_fn > 0.
-            any_false_done = if_done_fp > 0.
+            # if_done_fp = float(info["wm_errors"]["if_done_false_positives"])
+            # if_done_tp = float(info["wm_errors"]["if_done_true_positives"])
+            # if_done_fn = float(info["wm_errors"]["if_done_false_negatives"])
+            # if_done_tn = float(info["wm_errors"]["if_done_true_negatives"])
+            # if if_done_fn == 0:
+            #     missed_done_rate = 0.
+            # else:
+            #     missed_done_rate = if_done_fn / (if_done_fn + if_done_tp)
+            #
+            # if if_done_fp == 0.:
+            #     false_done_rate = 0.
+            # else:
+            #     false_done_rate = if_done_fp / (if_done_fp + if_done_tn)
+            #
+            # any_missed_done = if_done_fn > 0.
+            # any_false_done = if_done_fp > 0.
 
             games_to_sent_index_mod = games_to_sent_index % self.game_buffer_size
             game_kwargs = {
@@ -185,12 +185,12 @@ class Worker(object):
                 f"env_curriculum_{games_to_sent_index_mod}": 0,
                 f"avg_skip_{games_to_sent_index_mod}": avg_skip,
                 f"worker_avg_result_{games_to_sent_index_mod}": worker_avg_result,
-                f"wm_next_frame_errors_rate_{games_to_sent_index_mod}": float(info["wm_errors"]["next_frame"]) / len(game),
-                f"wm_reward_errors_rate_{games_to_sent_index_mod}": float(info["wm_errors"]["reward"]) / len(game),
-                f"wm_missed_done_rate_{games_to_sent_index_mod}": missed_done_rate,
-                f"wm_false_done_rate_{games_to_sent_index_mod}": false_done_rate,
-                f"wm_any_missed_done_{games_to_sent_index_mod}": any_missed_done,
-                f"wm_any_false_done_{games_to_sent_index_mod}": any_false_done,
+                # f"wm_next_frame_errors_rate_{games_to_sent_index_mod}": float(info["wm_errors"]["next_frame"]) / len(game),
+                # f"wm_reward_errors_rate_{games_to_sent_index_mod}": float(info["wm_errors"]["reward"]) / len(game),
+                # f"wm_missed_done_rate_{games_to_sent_index_mod}": missed_done_rate,
+                # f"wm_false_done_rate_{games_to_sent_index_mod}": false_done_rate,
+                # f"wm_any_missed_done_{games_to_sent_index_mod}": any_missed_done,
+                # f"wm_any_false_done_{games_to_sent_index_mod}": any_false_done,
             }
             if self.auto_ml_creator.is_auto_ml_present:
                 game_kwargs[f"auto_ml_parameters_{games_to_sent_index_mod}"] = self.auto_ml_creator.data(auto_ml_values)

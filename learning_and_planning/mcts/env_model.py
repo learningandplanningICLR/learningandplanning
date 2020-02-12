@@ -3,6 +3,33 @@ from abc import ABCMeta, abstractmethod
 import gin
 import numpy as np
 
+import tensorflow
+from tensorflow.python.keras.models import load_model
+
+from gym_sokoban_fast.sokoban_env_fast import HashableState, FieldStates
+
+
+def image_with_embedded_action(img, action, action_space_size):
+  """
+
+  Canonical way of concatenating action and image for next frame prediction
+  task.
+
+  Args:
+    img: array of shape (height, width, channels)
+
+  Returns:
+    embedded image: array of shape (height, width, channels + action_space_size)
+      action is one hot encoded after original channels.
+  """
+  assert len(img.shape) == 3
+  action_map_ohe = np.zeros(
+    img.shape[:2] + (action_space_size,), dtype=np.uint8
+  )
+  action_map_ohe[:, :, action] = 1
+  return np.concatenate([img, action_map_ohe], axis=2)
+
+
 
 class ModelBase(metaclass=ABCMeta):
     @abstractmethod
