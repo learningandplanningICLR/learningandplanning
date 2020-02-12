@@ -13,7 +13,7 @@ from learning_and_planning.mcts.replay_buffer import circular_replay_buffer_mcts
 # noinspection PyUnresolvedReferences
 import learning_and_planning.mcts.models
 # noinspection PyUnresolvedReferences
-import learning_and_planning.nets_factory
+# import learning_and_planning.nets_factory
 
 try:
     from mpi4py import MPI

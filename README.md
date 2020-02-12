@@ -23,6 +23,8 @@ Run experiment with
 
 `-np` argument sets number of processes, in our experiments we used value `24`.
 
+`learning_and_planning/experiments/chain_env/ensemble_kappa_0.py` is path to experiment specification file, replace it to run other experiment.
+
 ## Experiment specification files
 
 All experiments specifications (which should be passed to `run_train_.sh`) are 
@@ -36,6 +38,15 @@ See following subdirectories for experiments presented in the paper.
 * `sokoban_single_board` Sokoban experiments on single boards.
 * `transfer` Transfer across Sokoban boards. See docstring in `transfer.py` 
 for instructions.
+
+
+## Train model of Sokoban environment
+
+We provide Keras checkpoint of neural network used in our paper used to simulate Sokoban dynamics in `checkpoints/epoch.0003.hdf5`. To train MCTS-based agent using this model for planning use specification file `learning_and_planning/experiments/sokoban_multiboard/paper_exp_learned_model.py`. You can also train this model from scratch with
+
+`python3 learning_and_planning/supervised/supervised_training.py --ex learning_and_planning/experiments/next_frame_prediction/train_sokoban_approximated_model.py`
+
+This experiment will create new checkpoints and override existing one.
 
 ## Overview
 
