@@ -1,7 +1,7 @@
 
 ## Uncertainty - sensitive learning and planning with ensembles
 
-This is anonymized codebase for experiments presented in the paper "Uncertainty - sensitive learning and planning with ensembles" https://openreview.net/forum?id=SkglVlSFPS
+This is anonymized codebase for experiments presented in the paper "Uncertainty - sensitive learning and planning with ensembles".
 
 ## How to run it
 
